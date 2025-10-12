@@ -1,0 +1,157 @@
+// ===========================================
+// BARBEARIA - Schema Prisma (PostgreSQL) - camelCase
+// ===========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================
+// MODELOS
+// ===========================================
+
+// Usuários do sistema: clientes, barbeiros, admin
+model Usuario {
+  idUsuario   Int       @id @default(autoincrement()) @map("id_usuario")
+  nome        String
+  email       String    @unique
+  senhaHash   String    @map("senha_hash")
+  tipoUsuario TipoUsuario @map("tipo_usuario")
+  dataCriacao DateTime  @default(now()) @map("data_criacao")
+  ativo       Boolean   @default(true)
+
+  // Relações
+  cliente     Cliente?
+  barbeiro    Barbeiro?
+
+  @@map("USUARIOS")
+}
+
+// Clientes da barbearia (ligados a um usuário)
+model Cliente {
+  idCliente      Int       @id @default(autoincrement()) @map("id_cliente")
+  idUsuario      Int       @unique @map("id_usuario")
+  telefone       String?
+  dataNascimento DateTime? @map("data_nascimento")
+  observacoes    String?
+
+  usuario        Usuario   @relation(fields: [idUsuario], references: [idUsuario])
+  agendamentos   Agendamento[]
+  vendas         Venda[]
+
+  @@map("CLIENTES")
+}
+
+// Barbeiros (ligados a um usuário)
+model Barbeiro {
+  idBarbeiro   Int       @id @default(autoincrement()) @map("id_barbeiro")
+  idUsuario    Int       @unique @map("id_usuario")
+  especialidade String?
+  comissao     Decimal?
+  telefone     String?
+
+  usuario      Usuario   @relation(fields: [idUsuario], references: [idUsuario])
+  agendamentos Agendamento[]
+
+  @@map("BARBEIROS")
+}
+
+// Serviços oferecidos pela barbearia
+model Servico {
+  idServico    Int       @id @default(autoincrement()) @map("id_servico")
+  nome         String
+  descricao    String?
+  preco        Decimal
+  duracaoMin   Int       @map("duracao_min") // Duração em minutos
+
+  agendamentos Agendamento[]
+
+  @@map("SERVICOS")
+}
+
+// Agendamentos de clientes com barbeiros
+model Agendamento {
+  idAgendamento  Int      @id @default(autoincrement()) @map("id_agendamento")
+  idCliente      Int      @map("id_cliente")
+  idBarbeiro     Int      @map("id_barbeiro")
+  idServico      Int      @map("id_servico")
+  dataHoraInicio DateTime @map("data_hora_inicio")
+  dataHoraFim    DateTime @map("data_hora_fim")
+  status         StatusAgendamento @default(pendente)
+
+  cliente        Cliente  @relation(fields: [idCliente], references: [idCliente])
+  barbeiro       Barbeiro @relation(fields: [idBarbeiro], references: [idBarbeiro])
+  servico        Servico  @relation(fields: [idServico], references: [idServico])
+
+  @@map("AGENDAMENTOS")
+}
+
+// Produtos à venda na barbearia (ex: pomadas, shampoos, bebidas)
+model Produto {
+  idProduto     Int      @id @default(autoincrement()) @map("id_produto")
+  nome          String
+  categoria     String?
+  preco         Decimal
+  quantidade    Int      @default(0)
+  dataCadastro  DateTime @default(now()) @map("data_cadastro")
+
+  vendaProdutos VendaProduto[]
+
+  @@map("PRODUTOS")
+}
+
+// Vendas (podem incluir vários produtos)
+model Venda {
+  idVenda       Int      @id @default(autoincrement()) @map("id_venda")
+  idCliente     Int?     @map("id_cliente")
+  dataVenda     DateTime @default(now()) @map("data_venda")
+  valorTotal    Decimal  @map("valor_total")
+  formaPagamento MetodoPagamento @map("forma_pagamento")
+
+  cliente       Cliente?       @relation(fields: [idCliente], references: [idCliente])
+  vendaProdutos VendaProduto[]
+
+  @@map("VENDAS")
+}
+
+// Relação N:N entre Venda e Produto
+model VendaProduto {
+  idVenda     Int     @map("id_venda")
+  idProduto   Int     @map("id_produto")
+  quantidade  Int     @default(1)
+  precoUnit   Decimal @map("preco_unit")
+
+  venda       Venda   @relation(fields: [idVenda], references: [idVenda])
+  produto     Produto @relation(fields: [idProduto], references: [idProduto])
+
+  @@id([idVenda, idProduto])
+  @@map("ITENS_VENDA")
+}
+
+// ===========================================
+// ENUMS
+// ===========================================
+
+enum TipoUsuario {
+  admin
+  barbeiro
+  cliente
+}
+
+enum StatusAgendamento {
+  pendente
+  confirmado
+  cancelado
+  concluido
+}
+
+enum MetodoPagamento {
+  dinheiro
+  pix
+  cartao
+}

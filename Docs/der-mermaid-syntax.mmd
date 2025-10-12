@@ -1,0 +1,78 @@
+erDiagram
+    USUARIOS {
+        int id_usuario PK
+        string nome
+        string email
+        string senha_hash
+        string tipo_usuario
+        datetime data_criacao
+        boolean ativo
+    }
+
+    CLIENTES {
+        int id_cliente PK
+        int id_usuario FK
+        string telefone
+        date data_nascimento
+        string observacoes
+    }
+
+    BARBEIROS {
+        int id_barbeiro PK
+        int id_usuario FK
+        string especialidade
+        decimal comissao
+        string telefone
+    }
+
+    SERVICOS {
+        int id_servico PK
+        string nome
+        decimal preco
+        int duracao_min
+        string descricao
+    }
+
+    AGENDAMENTOS {
+        int id_agendamento PK
+        int id_cliente FK
+        int id_barbeiro FK
+        int id_servico FK
+        datetime data_hora_inicio
+        datetime data_hora_fim
+        string status
+    }
+
+    PRODUTOS {
+        int id_produto PK
+        string nome
+        string categoria
+        decimal preco
+        int quantidade
+        datetime data_cadastro
+    }
+
+    VENDAS {
+        int id_venda PK
+        int id_cliente FK
+        datetime data_venda
+        decimal valor_total
+        string forma_pagamento
+    }
+
+    ITENS_VENDA {
+        int id_venda FK
+        int id_produto FK
+        int quantidade
+        decimal preco_unit
+    }
+
+    %% RELAÇÕES %%
+    USUARIOS ||--|| CLIENTES : possui
+    USUARIOS ||--|| BARBEIROS : possui
+    CLIENTES ||--o{ AGENDAMENTOS : realiza
+    BARBEIROS ||--o{ AGENDAMENTOS : executa
+    SERVICOS ||--o{ AGENDAMENTOS : oferecido_em
+    CLIENTES ||--o{ VENDAS : efetua
+    VENDAS ||--o{ ITENS_VENDA : contem
+    PRODUTOS ||--o{ ITENS_VENDA : participa_em
