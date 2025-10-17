@@ -1,137 +1,129 @@
-import { Venda, VendaProduto } from "@prisma/client"
+import { Venda, Prisma } from "@prisma/client"
 import { prisma } from "../../database"
-import {
-  VendaRepository,
-  CreateVendaAttributes,
-  FindVendaParams,
-  VendaWhereParams,
-} from "../VendaRepository"
-
-// Função auxiliar para criar o where do Prisma
-function buildVendaWhere(where?: VendaWhereParams) {
-  return {
-    idVenda: where?.idVenda,
-    idCliente: where?.idCliente,
-    dataVenda: where?.dataVenda
-      ? { gte: where.dataVenda.gte, lte: where.dataVenda.lte }
-      : undefined,
-    formaPagamento: where?.formaPagamento,
-    vendaProdutos: where?.produtos
-      ? {
-          some: {
-            idProduto: where.produtos.idProduto,
-            quantidade: where.produtos.quantidade
-              ? {
-                  gte: where.produtos.quantidade.gte,
-                  lte: where.produtos.quantidade.lte,
-                }
-              : undefined,
-          },
-        }
-      : undefined,
-  }
-}
+import { VendaRepository, CreateVendaAttributes, FindVendaParams, VendaWhereParams } from "../VendaRepository"
 
 export class PrismaVendaRepository implements VendaRepository {
+
   async find(params?: FindVendaParams): Promise<Venda[]> {
     return prisma.venda.findMany({
-      where: buildVendaWhere(params?.where),
-      orderBy: params?.sortBy
-        ? { [params.sortBy]: params.order ?? "asc" }
-        : undefined,
+      where: {
+        idCliente: params?.where?.idCliente,
+        idVenda: params?.where?.idVenda,
+        dataVenda: params?.where?.dataVenda
+          ? {
+              gte: params.where.dataVenda.gte,
+              lte: params.where.dataVenda.lte
+            }
+          : undefined,
+        formaPagamento: params?.where?.formaPagamento
+      },
+      orderBy: params?.sortBy ? { [params.sortBy]: params.order || "asc" } : undefined,
       take: params?.limit,
       skip: params?.offset,
       include: {
-        cliente: params?.include?.cliente ?? false,
-        vendaProdutos: params?.include?.vendaProdutos ?? false,
-      },
+        cliente: params?.include?.cliente,
+        vendaProdutos: params?.include?.vendaProdutos ? { include: { produto: true } } : false
+      }
     })
   }
 
-  async findById(
-    id: number,
-    include?: { cliente?: boolean; vendaProdutos?: boolean }
-  ): Promise<Venda | null> {
+  async findById(id: number, include?: { cliente?: boolean; vendaProdutos?: boolean }): Promise<Venda | null> {
     return prisma.venda.findUnique({
       where: { idVenda: id },
       include: {
-        cliente: include?.cliente ?? false,
-        vendaProdutos: include?.vendaProdutos ?? false,
-      },
+        cliente: include?.cliente,
+        vendaProdutos: include?.vendaProdutos ? { include: { produto: true } } : false
+      }
     })
   }
 
   async create(data: CreateVendaAttributes): Promise<Venda> {
-    // Calcula valorTotal somando os produtos
-    const valorTotal = data.produtos.reduce(
-      (acc, item) => acc + item.precoUnit * item.quantidade,
-      0
+    const valorTotal = new Prisma.Decimal(
+      data.produtos.reduce((sum, item) => sum + item.precoUnit * item.quantidade, 0)
     )
 
-    return prisma.venda.create({
-      data: {
-        idCliente: data.idCliente,
-        formaPagamento: data.formaPagamento,
-        valorTotal,
-        vendaProdutos: {
-          create: data.produtos.map((item) => ({
-            idProduto: item.idProduto,
-            quantidade: item.quantidade,
-            precoUnit: item.precoUnit,
-          })),
-        },
-      },
-      include: {
-        vendaProdutos: true,
-      },
+    return prisma.$transaction(async (tx) => {
+      const novaVenda = await tx.venda.create({
+        data: {
+          idCliente: data.idCliente,
+          valorTotal,
+          formaPagamento: data.formaPagamento
+        }
+      })
+
+      const vendaProdutosData = data.produtos.map(item => ({
+        idVenda: novaVenda.idVenda,
+        idProduto: item.idProduto,
+        quantidade: item.quantidade,
+        precoUnit: new Prisma.Decimal(item.precoUnit)
+      }))
+
+      await tx.vendaProduto.createMany({ data: vendaProdutosData })
+
+      return novaVenda
     })
   }
 
   async count(where?: VendaWhereParams): Promise<number> {
     return prisma.venda.count({
-      where: buildVendaWhere(where),
+      where: {
+        idCliente: where?.idCliente,
+        idVenda: where?.idVenda,
+        dataVenda: where?.dataVenda
+          ? {
+              gte: where.dataVenda.gte,
+              lte: where.dataVenda.lte
+            }
+          : undefined,
+        formaPagamento: where?.formaPagamento
+      }
     })
   }
 
-  async updateById(
-    id: number,
-    data: Partial<CreateVendaAttributes>
-  ): Promise<Venda | null> {
-    let valorTotal: number | undefined = undefined
+  async updateById(id: number, data: Partial<CreateVendaAttributes>): Promise<Venda | null> {
+    return prisma.$transaction(async (tx) => {
+      const vendaAtual = await tx.venda.findUnique({
+        where: { idVenda: id },
+        include: { vendaProdutos: true }
+      })
+      if (!vendaAtual) throw new Error("Venda não encontrada")
 
-    if (data.produtos) {
-      valorTotal = data.produtos.reduce(
-        (acc, item) => acc + item.precoUnit * item.quantidade,
-        0
-      )
-    }
+      let novoValorTotal = vendaAtual.valorTotal
 
-    return prisma.venda.update({
-      where: { idVenda: id },
-      data: {
-        idCliente: data.idCliente,
-        formaPagamento: data.formaPagamento,
-        ...(valorTotal !== undefined ? { valorTotal } : {}),
-        vendaProdutos: data.produtos
-          ? {
-              deleteMany: {}, // remove itens antigos
-              create: data.produtos.map((item) => ({
-                idProduto: item.idProduto,
-                quantidade: item.quantidade,
-                precoUnit: item.precoUnit,
-              })),
-            }
-          : undefined,
-      },
-      include: {
-        vendaProdutos: true,
-      },
+      if (data.produtos) {
+        await tx.vendaProduto.deleteMany({ where: { idVenda: id } })
+
+        const vendaProdutosData = data.produtos.map(item => ({
+          idVenda: id,
+          idProduto: item.idProduto,
+          quantidade: item.quantidade,
+          precoUnit: new Prisma.Decimal(item.precoUnit)
+        }))
+
+        await tx.vendaProduto.createMany({ data: vendaProdutosData })
+
+        novoValorTotal = new Prisma.Decimal(
+          data.produtos.reduce((sum, item) => sum + item.precoUnit * item.quantidade, 0)
+        )
+      }
+
+      const vendaAtualizada = await tx.venda.update({
+        where: { idVenda: id },
+        data: {
+          idCliente: data.idCliente ?? vendaAtual.idCliente,
+          formaPagamento: data.formaPagamento ?? vendaAtual.formaPagamento,
+          valorTotal: novoValorTotal
+        }
+      })
+
+      return vendaAtualizada
     })
   }
 
   async deleteById(id: number): Promise<Venda | null> {
-    return prisma.venda.delete({
-      where: { idVenda: id },
+    return prisma.$transaction(async (tx) => {
+      await tx.vendaProduto.deleteMany({ where: { idVenda: id } })
+      return tx.venda.delete({ where: { idVenda: id } })
     })
   }
 }
