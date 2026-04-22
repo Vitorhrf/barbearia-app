@@ -1,4 +1,4 @@
-import { Cliente } from "@prisma/client"
+import { Prisma } from "@prisma/client"
 
 
 export interface CreateClienteAttributes {
@@ -31,11 +31,26 @@ export interface FindClienteParams {
   offset?: number
 }
 
+export type ClienteWithUsuario = Prisma.ClienteGetPayload<{
+    include: {
+        usuario: {
+            select: {
+                idUsuario: true
+                nome: true
+                email: true
+                tipoUsuario: true
+                ativo: true
+                dataCriacao: true
+            }
+        }
+    }
+}>
+
 export interface ClienteRepository {
-    find(params?: FindClienteParams & { usuarioWhere?: { nome?: string; email?: string; dataCriacao?: { gte?: Date; lte?: Date }; ativo?: boolean }, usuarioSortBy?: "nome" | "email" | "dataCriacao" | "ativo" }): Promise<Cliente[]>
-    findById(id: number): Promise<Cliente | null>
-    create(data: CreateClienteAttributes): Promise<Cliente>
+    find(params?: FindClienteParams & { usuarioWhere?: { nome?: string; email?: string; dataCriacao?: { gte?: Date; lte?: Date }; ativo?: boolean }, usuarioSortBy?: "nome" | "email" | "dataCriacao" | "ativo" }): Promise<ClienteWithUsuario[]>
+    findById(id: number, idBarbearia?: number): Promise<ClienteWithUsuario | null>
+    create(data: CreateClienteAttributes): Promise<ClienteWithUsuario>
     count(where: ClienteWhereParams & { usuarioWhere?: { nome?: string; email?: string; dataCriacao?: { gte?: Date; lte?: Date }; ativo?: boolean } }): Promise<number>
-    updateById(id: number, data: Partial<CreateClienteAttributes>): Promise<Cliente | null>
-    deleteById(id: number): Promise<Cliente | null>
+    updateById(id: number, idBarbearia: number, data: Partial<CreateClienteAttributes>): Promise<ClienteWithUsuario | null>
+    deleteById(id: number, idBarbearia: number): Promise<ClienteWithUsuario | null>
 }

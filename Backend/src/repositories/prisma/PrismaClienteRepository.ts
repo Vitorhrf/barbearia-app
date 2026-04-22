@@ -1,6 +1,5 @@
-import { Cliente } from "@prisma/client"
 import { prisma } from "../../database"
-import { CreateClienteAttributes, FindClienteParams, ClienteRepository, ClienteWhereParams } from "../ClienteRepository"
+import { CreateClienteAttributes, FindClienteParams, ClienteRepository, ClienteWhereParams, ClienteWithUsuario } from "../ClienteRepository"
 
 export class PrismaClienteRepository implements ClienteRepository {
 
@@ -20,7 +19,7 @@ export class PrismaClienteRepository implements ClienteRepository {
     async find(params?: FindClienteParams & {
         usuarioWhere?: { nome?: string; email?: string; dataCriacao?: { gte?: Date; lte?: Date }; ativo?: boolean };
         usuarioSortBy?: "nome" | "email" | "dataCriacao" | "ativo";
-    }): Promise<Cliente[]> {
+    }): Promise<ClienteWithUsuario[]> {
         return await prisma.cliente.findMany({
             where: {
                 idBarbearia: params?.where?.idBarbearia,
@@ -59,14 +58,17 @@ export class PrismaClienteRepository implements ClienteRepository {
         })
     }
 
-    async findById(id: number): Promise<Cliente | null> {
-        return await prisma.cliente.findUnique({
-            where: { idCliente: id },
+    async findById(id: number, idBarbearia?: number): Promise<ClienteWithUsuario | null> {
+        return await prisma.cliente.findFirst({
+            where: {
+                idCliente: id,
+                idBarbearia,
+            },
             include: this.usuarioInclude
         })
     }
 
-    async create(data: CreateClienteAttributes): Promise<Cliente> {
+    async create(data: CreateClienteAttributes): Promise<ClienteWithUsuario> {
         return await prisma.cliente.create({
             data,
             include: this.usuarioInclude
@@ -112,7 +114,10 @@ export class PrismaClienteRepository implements ClienteRepository {
         })
     }
 
-    async updateById(id: number, data: Partial<CreateClienteAttributes>): Promise<Cliente | null> {
+    async updateById(id: number, idBarbearia: number, data: Partial<CreateClienteAttributes>): Promise<ClienteWithUsuario | null> {
+        const cliente = await this.findById(id, idBarbearia)
+        if (!cliente) return null
+
         return await prisma.cliente.update({
             where: { idCliente: id },
             data,
@@ -120,8 +125,8 @@ export class PrismaClienteRepository implements ClienteRepository {
         })
     }
 
-    async deleteById(id: number): Promise<Cliente | null> {
-        const cliente = await this.findById(id)
+    async deleteById(id: number, idBarbearia: number): Promise<ClienteWithUsuario | null> {
+        const cliente = await this.findById(id, idBarbearia)
         if (!cliente) return null
         await prisma.usuario.update({
             where: { idUsuario: cliente?.idUsuario },

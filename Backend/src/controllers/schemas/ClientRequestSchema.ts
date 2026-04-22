@@ -1,34 +1,29 @@
-import { z } from "zod"
-import { cpf } from "cpf-cnpj-validator"
+import { z } from "zod";
 
 export const CreateClientRequestSchema = z.object({
-    name: z.string(),
-    email: z.email(),
-    password: z.string().min(6).max(100),
-    phone: z.string().min(10).max(15),
-    address: z.string().min(10).max(100).optional(),
-    cpf: z.string().transform((val) => val.replace(/\D/g, "")).refine((val) => cpf.isValid(val), {
-        message: "CPF inválido"
-    }).optional()
-})
+  nome: z.string().min(2).max(120),
+  email: z.email(),
+  senha: z.string().min(6).max(100),
+  telefone: z.string().min(10).max(15).optional(),
+  dataNascimento: z.coerce.date().optional(),
+  observacoes: z.string().max(500).optional(),
+});
 
 export const UpdateClientRequestSchema = z.object({
-    name: z.string().optional(),
-    email: z.email().optional(),
-    password: z.string().min(6).max(100).optional(),
-    phone: z.string().min(10).max(15).optional(),
-    address: z.string().min(10).max(100).optional(),
-    cpf: z.string().transform((val) => val.replace(/\D/g, "")).refine((val) => cpf.isValid(val), {
-        message: "CPF inválido"
-    }).optional()
-})
+  nome: z.string().min(2).max(120).optional(),
+  email: z.email().optional(),
+  senha: z.string().min(6).max(100).optional(),
+  telefone: z.string().min(10).max(15).optional(),
+  dataNascimento: z.coerce.date().optional(),
+  observacoes: z.string().max(500).optional(),
+});
 
 export const GetClientsRequestSchema = z.object({
-    page: z.string().optional(),
-    pageSize: z.string().optional(),
-    name: z.string().optional(),
-    phone: z.string().optional(),
-    cpf: z.string().optional(),
-    sortBy: z.enum(["name","createdAt", "updatedAt"]).optional(),
-    order: z.enum(["asc", "desc"]).optional()
-})
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  nome: z.string().optional(),
+  email: z.string().optional(),
+  telefone: z.string().optional(),
+  sortBy: z.enum(["idCliente", "telefone", "dataNascimento", "observacoes", "nome", "email", "dataCriacao"]).optional(),
+  order: z.enum(["asc", "desc"]).optional(),
+});
