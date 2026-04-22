@@ -1,4 +1,4 @@
-import { Barbeiro } from "@prisma/client"
+import { Prisma } from "@prisma/client"
 
 export interface CreateBarbeiroAttributes {
     idUsuario: number
@@ -23,17 +23,32 @@ export interface FindBarbeiroParams {
     offset?: number
 }
 
+export type BarbeiroWithUsuario = Prisma.BarbeiroGetPayload<{
+    include: {
+        usuario: {
+            select: {
+                idUsuario: true
+                nome: true
+                email: true
+                tipoUsuario: true
+                ativo: true
+                dataCriacao: true
+            }
+        }
+    }
+}>
+
 export interface BarbeiroRepository {
     find(params?: FindBarbeiroParams & {
         usuarioWhere?: { nome?: string; email?: string; dataCriacao?: { gte?: Date; lte?: Date }; ativo?: boolean }
         usuarioSortBy?: "nome" | "email" | "dataCriacao" | "ativo"
-    }): Promise<Barbeiro[]>
+    }): Promise<BarbeiroWithUsuario[]>
 
-    findById(id: number): Promise<Barbeiro | null>
-    create(data: CreateBarbeiroAttributes): Promise<Barbeiro>
+    findById(id: number, idBarbearia?: number): Promise<BarbeiroWithUsuario | null>
+    create(data: CreateBarbeiroAttributes): Promise<BarbeiroWithUsuario>
     count(where: BarbeiroWhereParams & {
         usuarioWhere?: { nome?: string; email?: string; dataCriacao?: { gte?: Date; lte?: Date }; ativo?: boolean }
     }): Promise<number>
-    updateById(id: number, data: Partial<CreateBarbeiroAttributes>): Promise<Barbeiro | null>
-    deleteById(id: number): Promise<Barbeiro | null>
+    updateById(id: number, idBarbearia: number, data: Partial<CreateBarbeiroAttributes>): Promise<BarbeiroWithUsuario | null>
+    deleteById(id: number, idBarbearia: number): Promise<BarbeiroWithUsuario | null>
 }

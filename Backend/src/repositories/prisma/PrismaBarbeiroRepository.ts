@@ -1,10 +1,10 @@
-import { Barbeiro } from "@prisma/client"
 import { prisma } from "../../database"
 import {
     CreateBarbeiroAttributes,
     FindBarbeiroParams,
     BarbeiroRepository,
-    BarbeiroWhereParams
+    BarbeiroWhereParams,
+    BarbeiroWithUsuario
 } from "../BarbeiroRepository"
 
 export class PrismaBarbeiroRepository implements BarbeiroRepository {
@@ -25,7 +25,7 @@ export class PrismaBarbeiroRepository implements BarbeiroRepository {
     async find(params?: FindBarbeiroParams & {
         usuarioWhere?: { nome?: string; email?: string; dataCriacao?: { gte?: Date; lte?: Date }; ativo?: boolean }
         usuarioSortBy?: "nome" | "email" | "dataCriacao" | "ativo"
-    }): Promise<Barbeiro[]> {
+    }): Promise<BarbeiroWithUsuario[]> {
         return await prisma.barbeiro.findMany({
             where: {
                 idBarbearia: params?.where?.idBarbearia,
@@ -68,14 +68,17 @@ export class PrismaBarbeiroRepository implements BarbeiroRepository {
         })
     }
 
-    async findById(id: number): Promise<Barbeiro | null> {
-        return await prisma.barbeiro.findUnique({
-            where: { idBarbeiro: id },
+    async findById(id: number, idBarbearia?: number): Promise<BarbeiroWithUsuario | null> {
+        return await prisma.barbeiro.findFirst({
+            where: {
+                idBarbeiro: id,
+                idBarbearia,
+            },
             include: this.usuarioInclude,
         })
     }
 
-    async create(data: CreateBarbeiroAttributes): Promise<Barbeiro> {
+    async create(data: CreateBarbeiroAttributes): Promise<BarbeiroWithUsuario> {
         return await prisma.barbeiro.create({
             data,
             include: this.usuarioInclude,
@@ -118,7 +121,10 @@ export class PrismaBarbeiroRepository implements BarbeiroRepository {
         })
     }
 
-    async updateById(id: number, data: Partial<CreateBarbeiroAttributes>): Promise<Barbeiro | null> {
+    async updateById(id: number, idBarbearia: number, data: Partial<CreateBarbeiroAttributes>): Promise<BarbeiroWithUsuario | null> {
+        const barbeiro = await this.findById(id, idBarbearia)
+        if (!barbeiro) return null
+
         return await prisma.barbeiro.update({
             where: { idBarbeiro: id },
             data,
@@ -126,8 +132,8 @@ export class PrismaBarbeiroRepository implements BarbeiroRepository {
         })
     }
 
-    async deleteById(id: number): Promise<Barbeiro | null> {
-        const barbeiro = await this.findById(id)
+    async deleteById(id: number, idBarbearia: number): Promise<BarbeiroWithUsuario | null> {
+        const barbeiro = await this.findById(id, idBarbearia)
         if (!barbeiro) return null
         await prisma.usuario.update({
             where: { idUsuario: barbeiro.idUsuario },
