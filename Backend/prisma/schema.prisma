@@ -104,6 +104,8 @@ model Barbeiro {
   usuario           Usuario     @relation(fields: [idUsuario], references: [idUsuario])
   barbearia         Barbearia   @relation(fields: [idBarbearia], references: [idBarbearia])
   agendamentos      Agendamento[]
+  horariosTrabalho  HorarioTrabalhoBarbeiro[]
+  bloqueiosAgenda   BloqueioAgenda[]
 
   @@unique([idUsuario, idBarbearia], map: "BARBEIROS_usuario_barbearia_key")
   @@map("BARBEIROS")
@@ -143,6 +145,40 @@ model Agendamento {
   servico           Servico            @relation(fields: [idServico], references: [idServico])
 
   @@map("AGENDAMENTOS")
+}
+
+model HorarioTrabalhoBarbeiro {
+  idHorarioTrabalho Int       @id @default(autoincrement()) @map("id_horario_trabalho")
+  idBarbearia       Int       @map("id_barbearia")
+  idBarbeiro        Int       @map("id_barbeiro")
+  diaSemana         DiaSemana @map("dia_semana")
+  horaInicio        String    @map("hora_inicio")
+  horaFim           String    @map("hora_fim")
+  ativo             Boolean   @default(true)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  barbearia         Barbearia @relation(fields: [idBarbearia], references: [idBarbearia])
+  barbeiro          Barbeiro  @relation(fields: [idBarbeiro], references: [idBarbeiro])
+
+  @@map("HORARIOS_TRABALHO_BARBEIRO")
+}
+
+model BloqueioAgenda {
+  idBloqueioAgenda  Int               @id @default(autoincrement()) @map("id_bloqueio_agenda")
+  idBarbearia       Int               @map("id_barbearia")
+  idBarbeiro        Int?              @map("id_barbeiro")
+  dataHoraInicio    DateTime          @map("data_hora_inicio")
+  dataHoraFim       DateTime          @map("data_hora_fim")
+  motivo            String?
+  tipoBloqueio      TipoBloqueioAgenda @map("tipo_bloqueio")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  barbearia         Barbearia         @relation(fields: [idBarbearia], references: [idBarbearia])
+  barbeiro          Barbeiro?         @relation(fields: [idBarbeiro], references: [idBarbeiro])
+
+  @@map("BLOQUEIOS_AGENDA")
 }
 
 model Produto {
@@ -216,6 +252,21 @@ enum StatusAgendamento {
   confirmado
   cancelado
   concluido
+}
+
+enum DiaSemana {
+  domingo
+  segunda
+  terca
+  quarta
+  quinta
+  sexta
+  sabado
+}
+
+enum TipoBloqueioAgenda {
+  barbeiro
+  geral
 }
 
 enum MetodoPagamento {
