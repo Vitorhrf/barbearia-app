@@ -1,4 +1,4 @@
-import { StatusAgendamento } from "@prisma/client";
+import { DiaSemana, StatusAgendamento } from "@prisma/client";
 import { prisma } from "../database/index.js";
 import { HttpError } from "../errors/HttpError.js";
 
@@ -21,8 +21,6 @@ interface GetAvailableAppointmentsParams {
   intervaloMin?: number;
 }
 
-const DEFAULT_START = "09:00";
-const DEFAULT_END = "18:00";
 const DEFAULT_INTERVAL_MIN = 30;
 const BLOCKING_STATUSES: StatusAgendamento[] = [
   StatusAgendamento.pendente,
@@ -97,16 +95,55 @@ export class AppointmentService {
     const validatedServico = servico!;
     this.ensureValidServiceDuration(validatedServico.duracaoMin);
 
-    const inicioExpediente = params.inicioExpediente ?? DEFAULT_START;
-    const fimExpediente = params.fimExpediente ?? DEFAULT_END;
     const intervaloMin = params.intervaloMin ?? DEFAULT_INTERVAL_MIN;
+    const diaSemana = this.getDiaSemana(params.data);
+    const schedules = await prisma.horarioTrabalhoBarbeiro.findMany({
+      where: {
+        idBarbearia: params.idBarbearia,
+        idBarbeiro: validatedBarbeiro.idBarbeiro,
+        diaSemana,
+        ativo: true,
+      },
+      orderBy: {
+        horaInicio: "asc",
+      },
+    });
 
-    const dayStart = this.combineDateAndTime(params.data, inicioExpediente);
-    const dayEnd = this.combineDateAndTime(params.data, fimExpediente);
-
-    if (dayEnd <= dayStart) {
-      throw new HttpError(400, "Janela de expediente invalida");
+    if (!schedules.length) {
+      return {
+        barbeiro: {
+          idBarbeiro: validatedBarbeiro.idBarbeiro,
+          nome: validatedBarbeiro.usuario.nome,
+        },
+        servico: {
+          idServico: validatedServico.idServico,
+          nome: validatedServico.nome,
+          duracaoMin: validatedServico.duracaoMin,
+        },
+        data: params.data,
+        intervaloMin,
+        slots: [],
+      };
     }
+
+    const windows = schedules.map((schedule) => {
+      const start = this.combineDateAndTime(params.data, schedule.horaInicio);
+      const end = this.combineDateAndTime(params.data, schedule.horaFim);
+
+      if (end <= start) {
+        throw new HttpError(400, "Intervalo de jornada invalido");
+      }
+
+      return {
+        inicio: schedule.horaInicio,
+        fim: schedule.horaFim,
+        start,
+        end,
+      };
+    });
+
+    const dayStart = windows[0]!.start;
+    const dayEnd = windows[windows.length - 1]!.end;
 
     const appointments = await prisma.agendamento.findMany({
       where: {
@@ -125,33 +162,58 @@ export class AppointmentService {
       },
     });
 
+    const blocks = await prisma.bloqueioAgenda.findMany({
+      where: {
+        idBarbearia: params.idBarbearia,
+        OR: [
+          { idBarbeiro: validatedBarbeiro.idBarbeiro },
+          { idBarbeiro: null },
+        ],
+        dataHoraInicio: {
+          lt: dayEnd,
+        },
+        dataHoraFim: {
+          gt: dayStart,
+        },
+      },
+      orderBy: {
+        dataHoraInicio: "asc",
+      },
+    });
+
     const slots: Array<{
       dataHoraInicio: string;
       dataHoraFim: string;
       disponivel: boolean;
     }> = [];
 
-    for (
-      let cursor = new Date(dayStart);
-      cursor < dayEnd;
-      cursor = new Date(cursor.getTime() + intervaloMin * 60000)
-    ) {
-      const slotStart = new Date(cursor);
-      const slotEnd = new Date(slotStart.getTime() + validatedServico.duracaoMin * 60000);
+    for (const window of windows) {
+      for (
+        let cursor = new Date(window.start);
+        cursor < window.end;
+        cursor = new Date(cursor.getTime() + intervaloMin * 60000)
+      ) {
+        const slotStart = new Date(cursor);
+        const slotEnd = new Date(slotStart.getTime() + validatedServico.duracaoMin * 60000);
 
-      if (slotEnd > dayEnd) {
-        break;
+        if (slotEnd > window.end) {
+          break;
+        }
+
+        const hasBlockConflict = blocks.some(
+          (block) => block.dataHoraInicio < slotEnd && block.dataHoraFim > slotStart,
+        );
+
+        const hasAppointmentConflict = appointments.some(
+          (appointment) => appointment.dataHoraInicio < slotEnd && appointment.dataHoraFim > slotStart,
+        );
+
+        slots.push({
+          dataHoraInicio: slotStart.toISOString(),
+          dataHoraFim: slotEnd.toISOString(),
+          disponivel: !hasBlockConflict && !hasAppointmentConflict,
+        });
       }
-
-      const hasConflict = appointments.some(
-        (appointment) => appointment.dataHoraInicio < slotEnd && appointment.dataHoraFim > slotStart,
-      );
-
-      slots.push({
-        dataHoraInicio: slotStart.toISOString(),
-        dataHoraFim: slotEnd.toISOString(),
-        disponivel: !hasConflict,
-      });
     }
 
     return {
@@ -165,8 +227,10 @@ export class AppointmentService {
         duracaoMin: validatedServico.duracaoMin,
       },
       data: params.data,
-      inicioExpediente,
-      fimExpediente,
+      jornadas: windows.map((window) => ({
+        horaInicio: window.inicio,
+        horaFim: window.fim,
+      })),
       intervaloMin,
       slots,
     };
@@ -265,6 +329,26 @@ export class AppointmentService {
     }
 
     return result;
+  }
+
+  private getDiaSemana(date: string): DiaSemana {
+    const parsed = new Date(`${date}T00:00:00`);
+
+    if (Number.isNaN(parsed.getTime())) {
+      throw new HttpError(400, "Data invalida");
+    }
+
+    const map: DiaSemana[] = [
+      DiaSemana.domingo,
+      DiaSemana.segunda,
+      DiaSemana.terca,
+      DiaSemana.quarta,
+      DiaSemana.quinta,
+      DiaSemana.sexta,
+      DiaSemana.sabado,
+    ];
+
+    return map[parsed.getDay()]!;
   }
 
   private ensureFutureAppointment(dataHoraInicio: Date) {

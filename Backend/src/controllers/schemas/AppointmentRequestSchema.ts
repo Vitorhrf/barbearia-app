@@ -20,7 +20,5 @@ export const GetAvailableAppointmentsRequestSchema = z.object({
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
     message: "Data invalida, formato correto: YYYY-MM-DD",
   }),
-  inicioExpediente: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  fimExpediente: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   intervaloMin: z.coerce.number().int().min(5).max(120).optional(),
 });
