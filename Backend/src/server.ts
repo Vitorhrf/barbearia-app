@@ -1,6 +1,10 @@
+import "dotenv/config"
 import express from 'express'
 import { router } from './router.js'
 import { errorHandlerMiddleware } from './middlewares/error-handler.js';
+import { validateEnvironment } from "./config/env.js";
+
+validateEnvironment();
 
 const app = express();
 app.use(express.json());
