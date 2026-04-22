@@ -1,49 +1,26 @@
-import { z } from "zod"
+import { z } from "zod";
+
+function isValidDate(value: Date) {
+  return !Number.isNaN(value.getTime());
+}
 
 export const CreateAppointmentRequestSchema = z.object({
-    clientId: z.coerce.number(),
-    barberId: z.coerce.number(),
-    date: z.coerce.date().refine((val) => !isNaN(val.getTime()), {
-        message: "Data inválida, formato correto: YYYY-MM-DDTHH:mm:ss"
-    })
-})
+  idCliente: z.coerce.number().int().positive(),
+  idBarbeiro: z.coerce.number().int().positive(),
+  idServico: z.coerce.number().int().positive(),
+  dataHoraInicio: z.coerce.date().refine(isValidDate, {
+    message: "Data invalida, formato correto: YYYY-MM-DDTHH:mm:ss",
+  }),
+  status: z.enum(["pendente", "confirmado"]).optional(),
+});
 
-export const UpdateAppointmentRequestSchema = z.object({
-    clientId: z.coerce.number().optional(),
-    barberId: z.coerce.number().optional(),
-    date: z.coerce.date().refine((val) => !isNaN(val.getTime()), {
-        message: "Data inválida, formato correto: YYYY-MM-DDTHH:mm:ss"
-    }).optional(),
-    status: z.enum([
-        "pending",
-        "confirmed",
-        "canceled",
-        "completed"
-    ]).optional()
-})
-
-export const GetAppointmentRequestSchema = z.object({
-    page: z.coerce.number().min(1).optional(),
-    pageSize: z.coerce.number().min(1).optional(),
-    clientId: z.coerce.number().optional(),
-    barberId: z.coerce.number().optional(),
-    date: z.coerce.date().refine((val) => !isNaN(val.getTime()), {
-        message: "Data inválida, formato correto: YYYY-MM-DD"
-    }).optional(),
-    status: z.enum([
-        "pending",
-        "confirmed",
-        "canceled",
-        "completed"
-    ]).optional(),
-    sortBy: z.enum([
-        "clientId",
-        "barberId",
-        "date",
-        "status"
-    ]).optional(),
-    order: z.enum([
-        "asc",
-        "desc"
-    ]).optional()
-})
+export const GetAvailableAppointmentsRequestSchema = z.object({
+  idBarbeiro: z.coerce.number().int().positive(),
+  idServico: z.coerce.number().int().positive(),
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
+    message: "Data invalida, formato correto: YYYY-MM-DD",
+  }),
+  inicioExpediente: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  fimExpediente: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  intervaloMin: z.coerce.number().int().min(5).max(120).optional(),
+});
