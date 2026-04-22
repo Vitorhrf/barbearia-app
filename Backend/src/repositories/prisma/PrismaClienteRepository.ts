@@ -23,6 +23,7 @@ export class PrismaClienteRepository implements ClienteRepository {
     }): Promise<Cliente[]> {
         return await prisma.cliente.findMany({
             where: {
+                idBarbearia: params?.where?.idBarbearia,
                 telefone: params?.where?.telefone ? { contains: params.where.telefone.like, mode: "insensitive" } : undefined,
                 observacoes: params?.where?.observacoes ? { contains: params.where.observacoes.like, mode: "insensitive" } : undefined,
                 dataNascimento: params?.where?.dataNascimento
@@ -80,6 +81,7 @@ export class PrismaClienteRepository implements ClienteRepository {
                 telefone: where?.telefone
                     ? { contains: where.telefone.like, mode: "insensitive" }
                     : undefined,
+                idBarbearia: where?.idBarbearia,
                 observacoes: where?.observacoes
                     ? { contains: where.observacoes.like, mode: "insensitive" }
                     : undefined,

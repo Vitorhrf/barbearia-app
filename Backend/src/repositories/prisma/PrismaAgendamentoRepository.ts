@@ -6,6 +6,7 @@ export class PrismaAgendamentoRepository implements AgendamentoRepository {
         // Implementação da busca de agendamentos usando Prisma
         return prisma.agendamento.findMany({
             where: {
+                idBarbearia: params?.where?.idBarbearia,
                 idCliente: params?.where?.idCliente,
                 idBarbeiro: params?.where?.idBarbeiro,
                 idServico: params?.where?.idServico,
@@ -59,6 +60,7 @@ export class PrismaAgendamentoRepository implements AgendamentoRepository {
         // Implementação da contagem de agendamentos usando Prisma
         return prisma.agendamento.count({
             where: {
+                idBarbearia: where?.idBarbearia,
                 idCliente: where?.idCliente,
                 idBarbeiro: where?.idBarbeiro,
                 idServico: where?.idServico,

@@ -2,12 +2,14 @@ import { Barbeiro } from "@prisma/client"
 
 export interface CreateBarbeiroAttributes {
     idUsuario: number
+    idBarbearia: number
     especialidade?: string
     comissao?: number
     telefone?: string
 }
 
 export interface BarbeiroWhereParams {
+    idBarbearia?: number
     especialidade?: { like?: string }
     telefone?: { like?: string }
     comissao?: { gte?: number; lte?: number }
@@ -15,7 +17,7 @@ export interface BarbeiroWhereParams {
 
 export interface FindBarbeiroParams {
     where?: BarbeiroWhereParams
-    sortBy?: "idBarbeiro" | "idUsuario" | "especialidade" | "comissao" | "telefone"
+    sortBy?: "idBarbeiro" | "idUsuario" | "idBarbearia" | "especialidade" | "comissao" | "telefone"
     order?: "asc" | "desc"
     limit?: number
     offset?: number

@@ -2,6 +2,7 @@ import { Venda, Produto } from "@prisma/client"
 
 // Atributos para criar uma venda
 export interface CreateVendaAttributes {
+  idBarbearia: number
   idCliente?: number
   formaPagamento: "dinheiro" | "pix" | "cartao"
   produtos: {
@@ -13,6 +14,7 @@ export interface CreateVendaAttributes {
 
 // Filtros de busca
 export interface VendaWhereParams {
+  idBarbearia?: number
   idVenda?: number
   idCliente?: number
   dataVenda?: {
@@ -26,7 +28,7 @@ export interface VendaWhereParams {
 // Parâmetros para buscar vendas
 export interface FindVendaParams {
   where?: VendaWhereParams
-  sortBy?: "idVenda" | "idCliente" | "dataVenda" | "valorTotal" | "formaPagamento"
+  sortBy?: "idVenda" | "idBarbearia" | "idCliente" | "dataVenda" | "valorTotal" | "formaPagamento"
   order?: "asc" | "desc"
   limit?: number
   offset?: number

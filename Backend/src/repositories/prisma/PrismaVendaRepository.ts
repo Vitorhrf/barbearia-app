@@ -7,6 +7,7 @@ export class PrismaVendaRepository implements VendaRepository {
   async find(params?: FindVendaParams): Promise<Venda[]> {
     return prisma.venda.findMany({
       where: {
+        idBarbearia: params?.where?.idBarbearia,
         idCliente: params?.where?.idCliente,
         idVenda: params?.where?.idVenda,
         dataVenda: params?.where?.dataVenda
@@ -45,6 +46,7 @@ export class PrismaVendaRepository implements VendaRepository {
     return prisma.$transaction(async (tx) => {
       const novaVenda = await tx.venda.create({
         data: {
+          idBarbearia: data.idBarbearia,
           idCliente: data.idCliente,
           valorTotal,
           formaPagamento: data.formaPagamento
@@ -67,6 +69,7 @@ export class PrismaVendaRepository implements VendaRepository {
   async count(where?: VendaWhereParams): Promise<number> {
     return prisma.venda.count({
       where: {
+        idBarbearia: where?.idBarbearia,
         idCliente: where?.idCliente,
         idVenda: where?.idVenda,
         dataVenda: where?.dataVenda

@@ -1,6 +1,7 @@
 import { Servico } from "@prisma/client"
 
 export interface CreateServicoAttributes {
+    idBarbearia: number
     nome: string
     descricao?: string
     preco: number
@@ -8,6 +9,7 @@ export interface CreateServicoAttributes {
 }
 
 export interface ServicoWhereParams {
+    idBarbearia?: number
     nome?: {
         like?: string
     }
@@ -25,7 +27,7 @@ export interface ServicoWhereParams {
 }
 export interface FindServicoParams {
     where?: ServicoWhereParams
-    sortBy?: "nome" | "descricao" | "preco" | "duracaoMin"
+    sortBy?: "idBarbearia" | "nome" | "descricao" | "preco" | "duracaoMin"
     order?: "asc" | "desc"
     limit?: number
     offset?: number

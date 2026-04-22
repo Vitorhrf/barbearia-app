@@ -28,6 +28,7 @@ export class PrismaBarbeiroRepository implements BarbeiroRepository {
     }): Promise<Barbeiro[]> {
         return await prisma.barbeiro.findMany({
             where: {
+                idBarbearia: params?.where?.idBarbearia,
                 especialidade: params?.where?.especialidade
                     ? { contains: params.where.especialidade.like, mode: "insensitive" }
                     : undefined,
@@ -86,6 +87,7 @@ export class PrismaBarbeiroRepository implements BarbeiroRepository {
     }): Promise<number> {
         return await prisma.barbeiro.count({
             where: {
+                idBarbearia: where?.idBarbearia,
                 especialidade: where?.especialidade
                     ? { contains: where.especialidade.like, mode: "insensitive" }
                     : undefined,

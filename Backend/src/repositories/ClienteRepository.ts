@@ -3,12 +3,14 @@ import { Cliente } from "@prisma/client"
 
 export interface CreateClienteAttributes {
     idUsuario: number
+    idBarbearia: number
     telefone?: string
     dataNascimento?: Date
     observacoes?: string
 }
 
 export interface ClienteWhereParams {
+    idBarbearia?: number
     telefone?: {
         like?: string
     }
@@ -23,7 +25,7 @@ export interface ClienteWhereParams {
 
 export interface FindClienteParams {
   where?: ClienteWhereParams
-  sortBy?: "idCliente" | "idUsuario" | "telefone" | "dataNascimento" | "observacoes"
+  sortBy?: "idCliente" | "idUsuario" | "idBarbearia" | "telefone" | "dataNascimento" | "observacoes"
   order?: "asc" | "desc"
   limit?: number
   offset?: number

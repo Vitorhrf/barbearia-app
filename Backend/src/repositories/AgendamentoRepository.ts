@@ -1,6 +1,7 @@
 import { Agendamento } from "@prisma/client"
 
 export interface CreateAgendamentoAttributes {
+    idBarbearia: number
     idCliente: number
     idBarbeiro: number
     idServico: number
@@ -9,6 +10,7 @@ export interface CreateAgendamentoAttributes {
 }
 
 export interface AgendamentoWhereParams {
+    idBarbearia?: number
     idCliente?: number
     idBarbeiro?: number
     idServico?: number
@@ -25,7 +27,7 @@ export interface AgendamentoWhereParams {
 
 export interface FindAgendamentoParams {
     where?: AgendamentoWhereParams
-    sortBy?: "dataHoraInicio" | "dataHoraFim" | "status" | "idCliente" | "idBarbeiro" | "idServico"
+    sortBy?: "idBarbearia" | "dataHoraInicio" | "dataHoraFim" | "status" | "idCliente" | "idBarbeiro" | "idServico"
     order?: "asc" | "desc"
     limit?: number
     offset?: number

@@ -5,7 +5,7 @@ export interface CreateUsuarioAttributes {
     nome: string
     email: string
     senhaHash: string
-    tipoUsuario: "admin" | "cliente" | "barbeiro"
+    tipoUsuario: "owner" | "admin" | "gerente" | "barbeiro" | "recepcao" | "financeiro" | "cliente"
 }
 
 export interface UsuarioWhereParams {
@@ -19,7 +19,7 @@ export interface UsuarioWhereParams {
         gte?: Date
         lte?: Date
     }
-    tipoUsuario?: "admin" | "cliente" | "barbeiro"
+    tipoUsuario?: "owner" | "admin" | "gerente" | "barbeiro" | "recepcao" | "financeiro" | "cliente"
     ativo?: boolean
 }
 

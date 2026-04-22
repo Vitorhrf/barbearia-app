@@ -4,6 +4,7 @@ import { ProdutoRepository, FindProdutoParams, CreateProdutoAttributes, ProdutoW
 
 function buildProdutoWhere(where: ProdutoWhereParams) {
   return {
+    idBarbearia: where?.idBarbearia,
     nome: where?.nome?.like ? { contains: where.nome.like, mode: 'insensitive' as const } : undefined,
     categoria: where?.categoria?.like ? { contains: where.categoria.like, mode: 'insensitive' as const } : undefined,
     preco: where?.preco

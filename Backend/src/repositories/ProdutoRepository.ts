@@ -1,6 +1,7 @@
 import { Produto } from "@prisma/client"
 
 export interface CreateProdutoAttributes {
+    idBarbearia: number
     nome: string
     categoria?: string
     preco: number
@@ -8,6 +9,7 @@ export interface CreateProdutoAttributes {
 }
 
 export interface ProdutoWhereParams {
+    idBarbearia?: number
     nome?: {
         like?: string
     }
@@ -30,7 +32,7 @@ export interface ProdutoWhereParams {
 
 export interface FindProdutoParams {
     where?: ProdutoWhereParams
-    sortBy?: "nome" | "categoria" | "preco" | "quantidade" | "dataCadastro"
+    sortBy?: "idBarbearia" | "nome" | "categoria" | "preco" | "quantidade" | "dataCadastro"
     order?: "asc" | "desc"
     limit?: number
     offset?: number
