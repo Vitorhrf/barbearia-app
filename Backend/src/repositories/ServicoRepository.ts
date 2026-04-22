@@ -35,9 +35,9 @@ export interface FindServicoParams {
 
 export interface ServicoRepository {
     find: (params: FindServicoParams) => Promise<Servico[]>
-    findById: (id: number) => Promise<Servico | null>
+    findById: (id: number, idBarbearia?: number) => Promise<Servico | null>
     create: (data: CreateServicoAttributes) => Promise<Servico>
     count: (where: ServicoWhereParams) => Promise<number>
-    updateById: (id: number, data: Partial<CreateServicoAttributes>) => Promise<Servico | null>
-    deleteById: (id: number) => Promise<Servico | null>
+    updateById: (id: number, idBarbearia: number, data: Partial<CreateServicoAttributes>) => Promise<Servico | null>
+    deleteById: (id: number, idBarbearia: number) => Promise<Servico | null>
 }
