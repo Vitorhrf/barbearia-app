@@ -1,5 +1,6 @@
 // ===========================================
-// BARBEARIA - Schema Prisma (PostgreSQL) - camelCase
+// BARBEARIA - Schema Prisma (PostgreSQL)
+// Fase 1: Fundacao multi-barbearias
 // ===========================================
 
 generator client {
@@ -11,135 +12,202 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ===========================================
-// MODELOS
-// ===========================================
+model Barbearia {
+  idBarbearia  Int               @id @default(autoincrement()) @map("id_barbearia")
+  nomeFantasia String            @map("nome_fantasia")
+  razaoSocial  String?           @map("razao_social")
+  cnpj         String?           @unique
+  slug         String            @unique
+  telefone     String?
+  email        String?
+  endereco     String?
+  logoUrl      String?           @map("logo_url")
+  corPrimaria  String?           @map("cor_primaria")
+  ativo        Boolean           @default(true)
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
 
-// Usuários do sistema: clientes, barbeiros, admin
+  usuariosBarbearias UsuarioBarbearia[]
+  clientes           Cliente[]
+  barbeiros          Barbeiro[]
+  servicos           Servico[]
+  agendamentos       Agendamento[]
+  produtos           Produto[]
+  vendas             Venda[]
+
+  @@map("BARBEARIAS")
+}
+
 model Usuario {
-  idUsuario   Int       @id @default(autoincrement()) @map("id_usuario")
-  nome        String
-  email       String    @unique
-  senhaHash   String    @map("senha_hash")
-  tipoUsuario TipoUsuario @map("tipo_usuario")
-  dataCriacao DateTime  @default(now()) @map("data_criacao")
-  ativo       Boolean   @default(true)
+  idUsuario      Int               @id @default(autoincrement()) @map("id_usuario")
+  nome           String
+  email          String            @unique
+  senhaHash      String            @map("senha_hash")
+  tipoUsuario    TipoUsuario       @map("tipo_usuario")
+  dataCriacao    DateTime          @default(now()) @map("data_criacao")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  ativo          Boolean           @default(true)
 
-  // Relações
-  cliente     Cliente?
-  barbeiro    Barbeiro?
+  cliente        Cliente[]
+  barbeiro       Barbeiro[]
+  usuariosBarbearias UsuarioBarbearia[]
 
   @@map("USUARIOS")
 }
 
-// Clientes da barbearia (ligados a um usuário)
+model UsuarioBarbearia {
+  idUsuarioBarbearia Int             @id @default(autoincrement()) @map("id_usuario_barbearia")
+  idUsuario          Int             @map("id_usuario")
+  idBarbearia        Int             @map("id_barbearia")
+  papel              PapelBarbearia
+  ativo              Boolean         @default(true)
+  dataEntrada        DateTime        @default(now()) @map("data_entrada")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+
+  usuario            Usuario         @relation(fields: [idUsuario], references: [idUsuario])
+  barbearia          Barbearia       @relation(fields: [idBarbearia], references: [idBarbearia])
+
+  @@unique([idUsuario, idBarbearia], map: "USUARIO_BARBEARIA_usuario_barbearia_key")
+  @@map("USUARIOS_BARBEARIAS")
+}
+
 model Cliente {
-  idCliente      Int       @id @default(autoincrement()) @map("id_cliente")
-  idUsuario      Int       @unique @map("id_usuario")
-  telefone       String?
-  dataNascimento DateTime? @map("data_nascimento")
-  observacoes    String?
+  idCliente         Int         @id @default(autoincrement()) @map("id_cliente")
+  idUsuario         Int         @map("id_usuario")
+  idBarbearia       Int         @map("id_barbearia")
+  telefone          String?
+  dataNascimento    DateTime?   @map("data_nascimento")
+  observacoes       String?
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
 
-  usuario        Usuario   @relation(fields: [idUsuario], references: [idUsuario])
-  agendamentos   Agendamento[]
-  vendas         Venda[]
+  usuario           Usuario     @relation(fields: [idUsuario], references: [idUsuario])
+  barbearia         Barbearia   @relation(fields: [idBarbearia], references: [idBarbearia])
+  agendamentos      Agendamento[]
+  vendas            Venda[]
 
+  @@unique([idUsuario, idBarbearia], map: "CLIENTES_usuario_barbearia_key")
   @@map("CLIENTES")
 }
 
-// Barbeiros (ligados a um usuário)
 model Barbeiro {
-  idBarbeiro   Int       @id @default(autoincrement()) @map("id_barbeiro")
-  idUsuario    Int       @unique @map("id_usuario")
-  especialidade String?
-  comissao     Decimal?
-  telefone     String?
+  idBarbeiro        Int         @id @default(autoincrement()) @map("id_barbeiro")
+  idUsuario         Int         @map("id_usuario")
+  idBarbearia       Int         @map("id_barbearia")
+  especialidade     String?
+  comissao          Decimal?
+  telefone          String?
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
 
-  usuario      Usuario   @relation(fields: [idUsuario], references: [idUsuario])
-  agendamentos Agendamento[]
+  usuario           Usuario     @relation(fields: [idUsuario], references: [idUsuario])
+  barbearia         Barbearia   @relation(fields: [idBarbearia], references: [idBarbearia])
+  agendamentos      Agendamento[]
 
+  @@unique([idUsuario, idBarbearia], map: "BARBEIROS_usuario_barbearia_key")
   @@map("BARBEIROS")
 }
 
-// Serviços oferecidos pela barbearia
 model Servico {
-  idServico    Int       @id @default(autoincrement()) @map("id_servico")
-  nome         String
-  descricao    String?
-  preco        Decimal
-  duracaoMin   Int       @map("duracao_min") // Duração em minutos
+  idServico         Int         @id @default(autoincrement()) @map("id_servico")
+  idBarbearia       Int         @map("id_barbearia")
+  nome              String
+  descricao         String?
+  preco             Decimal
+  duracaoMin        Int         @map("duracao_min")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
 
-  agendamentos Agendamento[]
+  barbearia         Barbearia   @relation(fields: [idBarbearia], references: [idBarbearia])
+  agendamentos      Agendamento[]
 
   @@map("SERVICOS")
 }
 
-// Agendamentos de clientes com barbeiros
 model Agendamento {
-  idAgendamento  Int      @id @default(autoincrement()) @map("id_agendamento")
-  idCliente      Int      @map("id_cliente")
-  idBarbeiro     Int      @map("id_barbeiro")
-  idServico      Int      @map("id_servico")
-  dataHoraInicio DateTime @map("data_hora_inicio")
-  dataHoraFim    DateTime @map("data_hora_fim")
-  status         StatusAgendamento @default(pendente)
+  idAgendamento     Int                @id @default(autoincrement()) @map("id_agendamento")
+  idBarbearia       Int                @map("id_barbearia")
+  idCliente         Int                @map("id_cliente")
+  idBarbeiro        Int                @map("id_barbeiro")
+  idServico         Int                @map("id_servico")
+  dataHoraInicio    DateTime           @map("data_hora_inicio")
+  dataHoraFim       DateTime           @map("data_hora_fim")
+  status            StatusAgendamento  @default(pendente)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
 
-  cliente        Cliente  @relation(fields: [idCliente], references: [idCliente])
-  barbeiro       Barbeiro @relation(fields: [idBarbeiro], references: [idBarbeiro])
-  servico        Servico  @relation(fields: [idServico], references: [idServico])
+  barbearia         Barbearia          @relation(fields: [idBarbearia], references: [idBarbearia])
+  cliente           Cliente            @relation(fields: [idCliente], references: [idCliente])
+  barbeiro          Barbeiro           @relation(fields: [idBarbeiro], references: [idBarbeiro])
+  servico           Servico            @relation(fields: [idServico], references: [idServico])
 
   @@map("AGENDAMENTOS")
 }
 
-// Produtos à venda na barbearia (ex: pomadas, shampoos, bebidas)
 model Produto {
-  idProduto     Int      @id @default(autoincrement()) @map("id_produto")
-  nome          String
-  categoria     String?
-  preco         Decimal
-  quantidade    Int      @default(0)
-  dataCadastro  DateTime @default(now()) @map("data_cadastro")
+  idProduto         Int         @id @default(autoincrement()) @map("id_produto")
+  idBarbearia       Int         @map("id_barbearia")
+  nome              String
+  categoria         String?
+  preco             Decimal
+  quantidade        Int         @default(0)
+  dataCadastro      DateTime    @default(now()) @map("data_cadastro")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
 
-  vendaProdutos VendaProduto[]
+  barbearia         Barbearia   @relation(fields: [idBarbearia], references: [idBarbearia])
+  vendaProdutos     VendaProduto[]
 
   @@map("PRODUTOS")
 }
 
-// Vendas (podem incluir vários produtos)
 model Venda {
-  idVenda       Int      @id @default(autoincrement()) @map("id_venda")
-  idCliente     Int?     @map("id_cliente")
-  dataVenda     DateTime @default(now()) @map("data_venda")
-  valorTotal    Decimal  @map("valor_total")
-  formaPagamento MetodoPagamento @map("forma_pagamento")
+  idVenda           Int              @id @default(autoincrement()) @map("id_venda")
+  idBarbearia       Int              @map("id_barbearia")
+  idCliente         Int?             @map("id_cliente")
+  dataVenda         DateTime         @default(now()) @map("data_venda")
+  valorTotal        Decimal          @map("valor_total")
+  formaPagamento    MetodoPagamento  @map("forma_pagamento")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
 
-  cliente       Cliente?       @relation(fields: [idCliente], references: [idCliente])
-  vendaProdutos VendaProduto[]
+  barbearia         Barbearia        @relation(fields: [idBarbearia], references: [idBarbearia])
+  cliente           Cliente?         @relation(fields: [idCliente], references: [idCliente])
+  vendaProdutos     VendaProduto[]
 
   @@map("VENDAS")
 }
 
-// Relação N:N entre Venda e Produto
 model VendaProduto {
-  idVenda     Int     @map("id_venda")
-  idProduto   Int     @map("id_produto")
-  quantidade  Int     @default(1)
-  precoUnit   Decimal @map("preco_unit")
+  idVenda           Int       @map("id_venda")
+  idProduto         Int       @map("id_produto")
+  quantidade        Int       @default(1)
+  precoUnit         Decimal   @map("preco_unit")
 
-  venda       Venda   @relation(fields: [idVenda], references: [idVenda])
-  produto     Produto @relation(fields: [idProduto], references: [idProduto])
+  venda             Venda     @relation(fields: [idVenda], references: [idVenda])
+  produto           Produto   @relation(fields: [idProduto], references: [idProduto])
 
   @@id([idVenda, idProduto])
   @@map("ITENS_VENDA")
 }
 
-// ===========================================
-// ENUMS
-// ===========================================
-
 enum TipoUsuario {
+  owner
   admin
+  gerente
   barbeiro
+  recepcao
+  financeiro
+  cliente
+}
+
+enum PapelBarbearia {
+  owner
+  admin
+  gerente
+  barbeiro
+  recepcao
+  financeiro
   cliente
 }
 
